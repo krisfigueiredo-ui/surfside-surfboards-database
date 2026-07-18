@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Surfside Surfboards relational database design by Kristofor Figueiredo.">
+  <title>Surfside Surfboards — Database Architecture</title>
+  <style>
+    :root{
+      --ink:#152229;--muted:#66757d;--paper:#f4f6f5;--surface:#fff;--line:#dce3e1;
+      --ocean:#0f6472;--ocean-soft:#e3f0f1;--sand:#c89557;--navy:#173542;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+      --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+    }
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55}
+    a{color:inherit}.shell{width:min(1220px,calc(100% - 40px));margin:auto}
+    header{background:var(--navy);color:#f7fbfa;border-bottom:1px solid #294a56}
+    .topbar{height:66px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+    .brand{font-size:15px;font-weight:680;letter-spacing:-.01em;text-decoration:none}.brand span{color:#8ec7ca}
+    nav{display:flex;align-items:center;gap:22px}nav a{font-size:12px;text-decoration:none;color:#b8c9ce}nav a:hover{color:#fff}
+    .hero{padding:74px 0 64px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:70px;align-items:end}
+    .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8ec7ca;margin-bottom:20px}
+    h1{font-size:clamp(42px,6vw,76px);line-height:.98;letter-spacing:-.055em;margin:0;max-width:780px;font-weight:640}
+    .lede{font-size:17px;line-height:1.6;color:#c8d5d8;max-width:690px;margin:24px 0 0}
+    .byline{border-left:1px solid #46616a;padding-left:22px;color:#b8c9ce;font-size:12px}.byline strong{display:block;color:#fff;font-size:14px;margin-bottom:5px}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);margin-top:-1px;background:var(--surface);border:1px solid var(--line)}
+    .metric{padding:20px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric strong{display:block;font:600 20px/1 var(--mono);color:var(--ocean);margin-bottom:8px}.metric span{font-size:11px;color:var(--muted)}
+    main{padding:48px 0 72px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:18px}
+    .section-head h2{font-size:26px;letter-spacing:-.03em;margin:0}.section-head p{margin:0;color:var(--muted);max-width:620px;font-size:12px}
+    .schema{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:520px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+    .table-list{border-right:1px solid var(--line);padding:10px;background:#f9faf9}
+    .table-button{width:100%;border:0;background:transparent;text-align:left;padding:12px 13px;border-radius:7px;color:#46575f;font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+    .table-button:hover{background:#edf2f1}.table-button.active{background:var(--ocean-soft);color:var(--ocean);font-weight:650}.table-button span{font-family:var(--sans);font-size:10px;color:#89979d}
+    .table-detail{padding:30px 34px}.detail-kicker{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ocean)}
+    .table-detail h3{font:600 28px var(--mono);letter-spacing:-.04em;margin:10px 0 8px}.table-detail>p{color:var(--muted);margin:0 0 28px;max-width:700px}
+    .columns{width:100%;border-collapse:collapse;font-size:12px}.columns th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font:600 9px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:#7b898f}
+    .columns td{padding:11px 12px;border-bottom:1px solid #edf0ef}.columns tr:last-child td{border-bottom:0}.columns code{font:11px var(--mono);color:var(--navy)}.key{display:inline-block;font:600 8px var(--mono);letter-spacing:.07em;padding:3px 5px;border-radius:3px;background:#edf2f1;color:#66757d}
+    .relationship{margin-top:26px;padding:16px 18px;background:#f6f8f7;border-left:3px solid var(--sand);font-size:12px;color:#526269}
+    .lower{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:42px}.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px}
+    .card h2{font-size:18px;margin:0 0 16px;letter-spacing:-.02em}.rule{padding:10px 0;border-top:1px solid #edf0ef;display:flex;gap:12px;color:#56666d;font-size:12px}.rule:first-of-type{border-top:0}.rule b{font:600 10px var(--mono);color:var(--ocean);min-width:28px}
+    .queries{display:grid;gap:9px}.query-link{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f7f9f8;border:1px solid #e7ecea;border-radius:7px;text-decoration:none;font-size:12px}.query-link:hover{border-color:#9cbabd}.query-link span{color:var(--ocean);font:10px var(--mono)}
+    .notice{margin-top:16px;padding:13px 15px;border:1px solid #ead9c4;background:#fbf7f1;color:#75634e;border-radius:7px;font-size:11px}
+    footer{border-top:1px solid var(--line);padding:26px 0 38px;color:var(--muted);font-size:11px}.footer-row{display:flex;justify-content:space-between;gap:20px}.footer-row a{color:var(--ocean)}
+    @media(max-width:800px){.hero{grid-template-columns:1fr;gap:38px}.metrics{grid-template-columns:1fr 1fr}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}.schema{grid-template-columns:1fr}.table-list{border-right:0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr}.lower{grid-template-columns:1fr}}
+    @media(max-width:540px){.shell{width:min(100% - 24px,1220px)}nav a:not(:last-child){display:none}.hero{padding:52px 0}.metrics{grid-template-columns:1fr}.metric{border-right:0;border-bottom:1px solid var(--line)}.table-list{grid-template-columns:1fr}.table-detail{padding:24px 18px}.columns th:nth-child(3),.columns td:nth-child(3){display:none}.section-head,.footer-row{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell topbar">
+      <a class="brand" href="#">Surfside <span>Data Architecture</span></a>
+      <nav aria-label="Primary">
+        <a href="#schema">Schema</a>
+        <a href="#rules">Business rules</a>
+        <a href="https://github.com/krisfigueiredo-ui/surfside-surfboards-database">GitHub repository</a>
+      </nav>
+    </div>
+    <div class="shell hero">
+      <div>
+        <div class="eyebrow">MySQL 8 · Relational design · WVU project</div>
+        <h1>Surfside Surfboards Database</h1>
+        <p class="lede">A normalized operating model for customers, fixed board configurations, reusable components, orders, reviews, and quarterly management reporting.</p>
+      </div>
+      <div class="byline"><strong>Created by Kristofor Figueiredo</strong>Original business rules and database concept developed at West Virginia University. SQL implementation reconstructed from the surviving project brief.</div>
+    </div>
+  </header>
+
+  <div class="shell metrics" aria-label="Schema summary">
+    <div class="metric"><strong>8</strong><span>Normalized base tables</span></div>
+    <div class="metric"><strong>2</strong><span>Reusable reporting views</span></div>
+    <div class="metric"><strong>9</strong><span>Integrity constraints</span></div>
+    <div class="metric"><strong>MySQL 8</strong><span>Target database engine</span></div>
+  </div>
+
+  <main class="shell">
+    <section id="schema">
+      <div class="section-head">
+        <h2>Schema reference</h2>
+        <p>Select a table to inspect its purpose, keys, and relationships. The implementation separates customer identity, multivalued phone numbers, catalog configuration, transactions, and feedback.</p>
+      </div>
+      <div class="schema">
+        <div class="table-list" id="table-list" aria-label="Database tables"></div>
+        <div class="table-detail" id="table-detail" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <div class="lower" id="rules">
+      <section class="card">
+        <h2>Business-rule coverage</h2>
+        <div class="rule"><b>01</b><span>Customers may be veterans, professional surfers, both, or neither.</span></div>
+        <div class="rule"><b>02</b><span>Customers may have multiple phone numbers and may exist before placing an order.</span></div>
+        <div class="rule"><b>03</b><span>Board models use fixed, company-defined component recipes; custom substitutions are excluded.</span></div>
+        <div class="rule"><b>04</b><span>One order belongs to one customer and may contain multiple board models and quantities.</span></div>
+        <div class="rule"><b>05</b><span>Quarterly analysis identifies top spenders, best sellers, and reviews that need follow-up.</span></div>
+      </section>
+      <section class="card">
+        <h2>Implementation files</h2>
+        <div class="queries">
+          <a class="query-link" href="sql/01_schema.sql">Schema and views <span>SQL →</span></a>
+          <a class="query-link" href="sql/02_seed.sql">Synthetic sample records <span>SQL →</span></a>
+          <a class="query-link" href="sql/03_analytics.sql">Quarterly analytics <span>SQL →</span></a>
+          <a class="query-link" href="sql/04_validation.sql">Integrity checks <span>SQL →</span></a>
+          <a class="query-link" href="docker-compose.yml">Local MySQL environment <span>YAML →</span></a>
+        </div>
+        <div class="notice">Demonstration records are synthetic. This repository contains no real customer, veteran, or client information.</div>
+      </section>
+    </div>
+  </main>
+
+  <footer><div class="shell footer-row"><span>Surfside Surfboards Database · Kristofor Figueiredo</span><a href="https://github.com/krisfigueiredo-ui">View all GitHub projects</a></div></footer>
+  <script>
+    var tables=[
+      {name:"customers",purpose:"Customer identity and optional sponsorship or veteran eligibility.",relation:"One customer may have many phone numbers and many orders. Potential customers can exist with neither.",columns:[["customer_id","BIGINT","PK"],["first_name","VARCHAR(60)","required"],["last_name","VARCHAR(60)","required"],["date_of_birth","DATE","optional"],["pro_global_ranking","INT","optional"],["veteran_id","VARCHAR(80)","unique, optional"],["created_at","TIMESTAMP","audit"]]},
+      {name:"customer_phones",purpose:"Normalized storage for the multivalued customer phone-number requirement.",relation:"Many phone records belong to one customer; deleting a customer cascades to phone records.",columns:[["customer_phone_id","BIGINT","PK"],["customer_id","BIGINT","FK"],["phone_type","ENUM","classification"],["phone_number","VARCHAR(30)","unique per customer"],["is_primary","BOOLEAN","flag"]]},
+      {name:"surfboards",purpose:"Company-defined sellable board models. These are catalog definitions, not individual serialized units.",relation:"A board uses many components and can appear on many order items.",columns:[["surfboard_id","BIGINT","PK"],["board_name","VARCHAR(100)","unique"],["board_description","VARCHAR(500)","optional"],["is_active","BOOLEAN","catalog flag"],["created_at","TIMESTAMP","audit"]]},
+      {name:"components",purpose:"Reusable deck, leash, fin, spare, and other component definitions with current unit cost.",relation:"A component may be used in multiple fixed surfboard recipes.",columns:[["component_id","BIGINT","PK"],["component_name","VARCHAR(100)","unique by type"],["component_type","ENUM","deck/leash/fin/etc."],["unit_cost","DECIMAL(10,2)","nonnegative"],["is_active","BOOLEAN","catalog flag"]]},
+      {name:"surfboard_components",purpose:"Fixed bill of materials for each company-defined board model.",relation:"Bridge table resolving the many-to-many relationship between surfboards and components.",columns:[["surfboard_id","BIGINT","PK, FK"],["component_id","BIGINT","PK, FK"],["component_quantity","SMALLINT","minimum 1"]]},
+      {name:"orders",purpose:"Customer order header, transaction date, and lifecycle status.",relation:"Each order belongs to exactly one customer and contains one or more order items.",columns:[["order_id","BIGINT","PK"],["customer_id","BIGINT","FK"],["order_date","DATE","indexed"],["order_status","ENUM","lifecycle"],["created_at","TIMESTAMP","audit"]]},
+      {name:"order_items",purpose:"Board models and quantities sold on each order, including historical unit-price snapshots.",relation:"Many items belong to one order; each item references one surfboard model.",columns:[["order_item_id","BIGINT","PK"],["order_id","BIGINT","FK"],["surfboard_id","BIGINT","FK"],["quantity","SMALLINT","minimum 1"],["unit_price","DECIMAL(10,2)","sale-time price"]]},
+      {name:"reviews",purpose:"Optional one-to-five-star feedback associated with a completed customer order.",relation:"An order may have zero or one review. The customer is derived safely through the order relationship.",columns:[["review_id","BIGINT","PK"],["order_id","BIGINT","unique FK"],["rating","TINYINT","1–5"],["review_text","VARCHAR(2000)","optional"],["submitted_at","TIMESTAMP","audit"]]}
+    ];
+    var list=document.getElementById("table-list"),detail=document.getElementById("table-detail");
+    function showTable(index){
+      var t=tables[index];
+      Array.prototype.forEach.call(document.querySelectorAll(".table-button"),function(button,i){button.classList.toggle("active",i===index)});
+      var rows=t.columns.map(function(c){return "<tr><td><code>"+c[0]+"</code></td><td>"+c[1]+"</td><td><span class='key'>"+c[2]+"</span></td></tr>"}).join("");
+      detail.innerHTML="<div class='detail-kicker'>Table "+(index+1)+" of "+tables.length+"</div><h3>"+t.name+"</h3><p>"+t.purpose+"</p><table class='columns'><thead><tr><th>Column</th><th>Type</th><th>Role</th></tr></thead><tbody>"+rows+"</tbody></table><div class='relationship'><strong>Relationship:</strong> "+t.relation+"</div>";
+    }
+    tables.forEach(function(t,index){var b=document.createElement("button");b.className="table-button";b.type="button";b.innerHTML=t.name+"<span>"+t.columns.length+" cols</span>";b.addEventListener("click",function(){showTable(index)});list.appendChild(b)});
+    showTable(0);
+  </script>
+</body>
+</html>
